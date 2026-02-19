@@ -10,17 +10,17 @@
 <div class="app-shell">
   <aside class="sidebar">
     <div class="brand-bar">
-      <span class="brand-name">Akkhor</span>
+      <span class="brand-name">School</span>
       <span class="brand-tag">SMS</span>
     </div>
 
     <p class="sidebar-section">Dashboard</p>
     <nav class="sidebar-nav">
-      <button class="nav-item active" type="button">Student Profile</button>
-      <button class="nav-item" type="button">Results</button>
-      <button class="nav-item" type="button">Attendance</button>
-      <button class="nav-item" type="button">Messages</button>
-      <button class="nav-item" type="button">Account</button>
+      <button class="nav-item active" type="button" data-view="profile">Student Profile</button>
+      <button class="nav-item" type="button" data-view="results">Results</button>
+      <button class="nav-item" type="button" data-view="attendance">Attendance</button>
+      <button class="nav-item" type="button" data-view="messages">Messages</button>
+      <button class="nav-item" type="button" data-view="account">Account</button>
     </nav>
 
     <button class="mode-btn" type="button" onclick="toggleMode()">Toggle Theme</button>
@@ -30,7 +30,7 @@
     <header class="topbar">
       <div>
         <p class="crumb">Home / Student Records</p>
-        <h1>Welcome To Akkhor School Management System</h1>
+        <h1>Welcome To School Management System</h1>
       </div>
       <div class="topbar-right">
         <input class="top-search" type="text" placeholder="Search here..." aria-label="Search">
@@ -38,112 +38,165 @@
       </div>
     </header>
 
-    <section class="dashboard-grid">
-      <article class="panel form-panel">
+    <section class="view-section" data-view="profile">
+      <section class="dashboard-grid">
+        <article class="panel form-panel">
+          <div class="panel-head">
+            <h2>Add Student</h2>
+            <p>Create, update, and delete records.</p>
+          </div>
+
+          <div class="form-grid">
+            <label>Roll
+              <input id="roll" placeholder="e.g. 2901">
+            </label>
+            <label>Name
+              <input id="name" placeholder="Student Name">
+            </label>
+            <label>Phone
+              <input id="phone" placeholder="Phone Number">
+            </label>
+            <label>Address
+              <input id="address" placeholder="Address">
+            </label>
+            <label class="full-width">Photo
+              <input type="file" id="photo" accept="image/*">
+            </label>
+          </div>
+
+          <h3 class="marks-title">Marks</h3>
+          <div class="marks-grid">
+            <label>DSA
+              <input id="dsa" type="number" min="0" max="100" placeholder="0-100">
+            </label>
+            <label>OS
+              <input id="os" type="number" min="0" max="100" placeholder="0-100">
+            </label>
+            <label>DBMS
+              <input id="dbms" type="number" min="0" max="100" placeholder="0-100">
+            </label>
+            <label>CN
+              <input id="cn" type="number" min="0" max="100" placeholder="0-100">
+            </label>
+          </div>
+
+          <div class="action-row">
+            <button type="button" onclick="addStudent()">Add Student</button>
+            <button type="button" onclick="updateStudent()">Update</button>
+            <button type="button" onclick="deleteStudent()">Delete</button>
+          </div>
+        </article>
+
+        <article class="panel right-panel">
+          <div class="metrics-grid">
+            <article class="metric-card metric-red">
+              <p class="metric-value" id="statFees">0</p>
+              <p class="metric-label">Due Fees</p>
+            </article>
+            <article class="metric-card metric-green">
+              <p class="metric-value" id="statStudents">0</p>
+              <p class="metric-label">Active Records</p>
+            </article>
+            <article class="metric-card metric-blue">
+              <p class="metric-value" id="statTopper">0</p>
+              <p class="metric-label">Top Score</p>
+            </article>
+            <article class="metric-card metric-teal">
+              <p class="metric-value" id="statAverage">0.00%</p>
+              <p class="metric-label">Class Average</p>
+            </article>
+          </div>
+
+          <div class="search-card">
+            <h2>Search Student</h2>
+            <p>Find and sort records quickly.</p>
+            <div class="search-row">
+              <input id="searchRoll" placeholder="Enter Roll Number">
+              <button type="button" onclick="searchStudent()">Search</button>
+            </div>
+            <div class="secondary-actions">
+              <button type="button" onclick="sortTopper()">Topper Sort</button>
+              <button type="button" onclick="displayStudents()">Show All</button>
+            </div>
+
+            <div class="import-box">
+              <h3>Import From Excel</h3>
+              <p>Accepted: .xlsx, .xls, .csv</p>
+              <div class="import-row">
+                <input id="excelFile" type="file" accept=".xlsx,.xls,.csv">
+                <button class="import-btn" type="button" onclick="importStudentsFromExcel()">Import</button>
+              </div>
+              <p class="import-hint">Columns: Roll, Name, Phone, Address, DSA, OS, DBMS, CN.</p>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section id="result" class="panel result-panel">
+        <div class="result-empty">Search a roll number to view student details.</div>
+      </section>
+
+      <section class="panel table-panel">
+        <div class="panel-head table-head">
+          <h2>Student Table</h2>
+          <p>Live overview of all records.</p>
+        </div>
+        <div class="table-wrap">
+          <table id="table">
+            <tr>
+              <th>Photo</th>
+              <th>Name</th>
+              <th>Roll</th>
+              <th>Total</th>
+              <th>%</th>
+            </tr>
+          </table>
+        </div>
+      </section>
+    </section>
+
+    <section class="view-section is-hidden" data-view="results">
+      <article class="panel">
         <div class="panel-head">
-          <h2>Add Student</h2>
-          <p>Create, update, and delete records.</p>
+          <h2>Results Board</h2>
+          <p>Students ranked by total score.</p>
         </div>
-
-        <div class="form-grid">
-          <label>Roll
-            <input id="roll" placeholder="e.g. 2901">
-          </label>
-          <label>Name
-            <input id="name" placeholder="Student Name">
-          </label>
-          <label>Phone
-            <input id="phone" placeholder="Phone Number">
-          </label>
-          <label>Address
-            <input id="address" placeholder="Address">
-          </label>
-          <label class="full-width">Photo
-            <input type="file" id="photo" accept="image/*">
-          </label>
-        </div>
-
-        <h3 class="marks-title">Marks</h3>
-        <div class="marks-grid">
-          <label>DSA
-            <input id="dsa" type="number" min="0" max="100" placeholder="0-100">
-          </label>
-          <label>OS
-            <input id="os" type="number" min="0" max="100" placeholder="0-100">
-          </label>
-          <label>DBMS
-            <input id="dbms" type="number" min="0" max="100" placeholder="0-100">
-          </label>
-          <label>CN
-            <input id="cn" type="number" min="0" max="100" placeholder="0-100">
-          </label>
-        </div>
-
-        <div class="action-row">
-          <button type="button" onclick="addStudent()">Add Student</button>
-          <button type="button" onclick="updateStudent()">Update</button>
-          <button type="button" onclick="deleteStudent()">Delete</button>
-        </div>
-      </article>
-
-      <article class="panel right-panel">
-        <div class="metrics-grid">
-          <article class="metric-card metric-red">
-            <p class="metric-value" id="statFees">0</p>
-            <p class="metric-label">Due Fees</p>
-          </article>
-          <article class="metric-card metric-green">
-            <p class="metric-value" id="statStudents">0</p>
-            <p class="metric-label">Active Records</p>
-          </article>
-          <article class="metric-card metric-blue">
-            <p class="metric-value" id="statTopper">0</p>
-            <p class="metric-label">Top Score</p>
-          </article>
-          <article class="metric-card metric-teal">
-            <p class="metric-value" id="statAverage">0.00%</p>
-            <p class="metric-label">Class Average</p>
-          </article>
-        </div>
-
-        <div class="search-card">
-          <h2>Search Student</h2>
-          <p>Find and sort records quickly.</p>
-          <div class="search-row">
-            <input id="searchRoll" placeholder="Enter Roll Number">
-            <button type="button" onclick="searchStudent()">Search</button>
-          </div>
-          <div class="secondary-actions">
-            <button type="button" onclick="sortTopper()">Topper Sort</button>
-            <button type="button" onclick="displayStudents()">Show All</button>
-          </div>
-        </div>
+        <div id="resultsBoard" class="status-board"></div>
       </article>
     </section>
 
-    <section id="result" class="panel result-panel">
-      <div class="result-empty">Search a roll number to view student details.</div>
+    <section class="view-section is-hidden" data-view="attendance">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Attendance Board</h2>
+          <p>Auto-generated attendance from student records.</p>
+        </div>
+        <div id="attendanceBoard" class="status-board"></div>
+      </article>
     </section>
 
-    <section class="panel table-panel">
-      <div class="panel-head table-head">
-        <h2>Student Table</h2>
-        <p>Live overview of all records.</p>
-      </div>
-      <div class="table-wrap">
-        <table id="table">
-          <tr>
-            <th>Photo</th>
-            <th>Name</th>
-            <th>Roll</th>
-            <th>Total</th>
-            <th>%</th>
-          </tr>
-        </table>
-      </div>
+    <section class="view-section is-hidden" data-view="messages">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Messages</h2>
+          <p>Class updates based on current records.</p>
+        </div>
+        <div id="messagesBoard" class="status-board"></div>
+      </article>
+    </section>
+
+    <section class="view-section is-hidden" data-view="account">
+      <article class="panel">
+        <div class="panel-head">
+          <h2>Account</h2>
+          <p>Quick admin summary.</p>
+        </div>
+        <div id="accountBoard" class="status-board"></div>
+      </article>
     </section>
   </main>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>

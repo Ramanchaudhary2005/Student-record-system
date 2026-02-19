@@ -161,6 +161,16 @@ body::before {
   gap: 18px;
 }
 
+.view-section {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.is-hidden {
+  display: none;
+}
+
 .topbar,
 .panel {
   border: 1px solid var(--panel-border);
@@ -530,6 +540,30 @@ td img {
   text-align: center;
   color: var(--muted);
   font-weight: 600;
+}
+
+.status-board {
+  margin-top: 12px;
+  display: grid;
+  gap: 10px;
+}
+
+.status-item {
+  border: 1px solid var(--panel-border);
+  background: color-mix(in srgb, var(--panel) 93%, #dceeff 7%);
+  border-radius: 10px;
+  padding: 12px;
+}
+
+.status-item h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.status-item p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 0.86rem;
 }
 
 @keyframes dropIn {

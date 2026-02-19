@@ -1,4 +1,5 @@
 const students = [];
+let currentView = "profile";
 
 const DEFAULT_PHOTO = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
@@ -118,6 +119,7 @@ function displayStudents() {
   if (!students.length) {
     table.innerHTML += `<tr><td class="table-empty" colspan="5">No student records yet.</td></tr>`;
     updateStats();
+    refreshBoards();
     return;
   }
 
@@ -137,10 +139,39 @@ function displayStudents() {
   }
 
   updateStats();
+  refreshBoards();
 }
 
 function toggleMode() {
   document.body.classList.toggle("dark");
+}
+
+function initSidebarNavigation() {
+  const navItems = document.querySelectorAll(".nav-item[data-view]");
+
+  for (const item of navItems) {
+    item.addEventListener("click", () => {
+      switchView(item.dataset.view);
+    });
+  }
+}
+
+function switchView(view) {
+  if (!view) {
+    return;
+  }
+
+  currentView = view;
+
+  document.querySelectorAll(".nav-item[data-view]").forEach((item) => {
+    item.classList.toggle("active", item.dataset.view === view);
+  });
+
+  document.querySelectorAll(".view-section[data-view]").forEach((section) => {
+    section.classList.toggle("is-hidden", section.dataset.view !== view);
+  });
+
+  refreshBoards();
 }
 
 function buildStudentFromForm(existingPhoto = "", keepOldPhoto = false) {
@@ -184,6 +215,143 @@ function updateStats() {
   textOf("statStudents", String(totalStudents));
   textOf("statTopper", String(topScore));
   textOf("statAverage", `${averageScore}%`);
+}
+
+function refreshBoards() {
+  renderResultsView();
+  renderAttendanceView();
+  renderMessagesView();
+  renderAccountView();
+}
+
+function renderResultsView() {
+  const board = document.getElementById("resultsBoard");
+  if (!board) {
+    return;
+  }
+
+  if (!students.length) {
+    board.innerHTML = `
+      <div class="status-item">
+        <h3>No result data</h3>
+        <p>Add students to see ranking details.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const ranked = [...students].sort((a, b) => b.total - a.total || a.roll.localeCompare(b.roll));
+
+  board.innerHTML = ranked
+    .map((student, index) => {
+      const topper = index === 0 ? ` <span class="tag-top">TOP</span>` : "";
+      return `
+        <div class="status-item">
+          <h3>#${index + 1} ${escapeHtml(student.name)}${topper}</h3>
+          <p>Roll ${escapeHtml(student.roll)} | Total ${student.total}/400 | ${student.percentage}%</p>
+        </div>
+      `;
+    })
+    .join("");
+}
+
+function renderAttendanceView() {
+  const board = document.getElementById("attendanceBoard");
+  if (!board) {
+    return;
+  }
+
+  if (!students.length) {
+    board.innerHTML = `
+      <div class="status-item">
+        <h3>No attendance data</h3>
+        <p>Add students to generate attendance status.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const items = students
+    .map((student) => {
+      const attendance = Math.max(60, Math.min(99, Math.round(Number(student.percentage) * 0.8 + 20)));
+      const status = attendance >= 90 ? "Excellent" : attendance >= 75 ? "Regular" : "Need Improvement";
+      return { student, attendance, status };
+    })
+    .sort((a, b) => b.attendance - a.attendance);
+
+  board.innerHTML = items
+    .map(
+      ({ student, attendance, status }) => `
+        <div class="status-item">
+          <h3>${escapeHtml(student.name)} (${escapeHtml(student.roll)})</h3>
+          <p>Attendance: ${attendance}% | Status: ${status}</p>
+        </div>
+      `
+    )
+    .join("");
+}
+
+function renderMessagesView() {
+  const board = document.getElementById("messagesBoard");
+  if (!board) {
+    return;
+  }
+
+  if (!students.length) {
+    board.innerHTML = `
+      <div class="status-item">
+        <h3>No messages yet</h3>
+        <p>Messages will appear once student records are available.</p>
+      </div>
+    `;
+    return;
+  }
+
+  const topper = [...students].sort((a, b) => b.total - a.total || a.roll.localeCompare(b.roll))[0];
+  const averageScore = (
+    students.reduce((sum, student) => sum + Number(student.percentage), 0) / students.length
+  ).toFixed(2);
+
+  board.innerHTML = `
+    <div class="status-item">
+      <h3>Academic Update</h3>
+      <p>Top performer right now is ${escapeHtml(topper.name)} (${escapeHtml(topper.roll)}).</p>
+    </div>
+    <div class="status-item">
+      <h3>Class Performance</h3>
+      <p>Current class average is ${averageScore}% with ${students.length} active records.</p>
+    </div>
+    <div class="status-item">
+      <h3>Reminder</h3>
+      <p>Use Search to open any record quickly and Update to modify details.</p>
+    </div>
+  `;
+}
+
+function renderAccountView() {
+  const board = document.getElementById("accountBoard");
+  if (!board) {
+    return;
+  }
+
+  const today = new Date().toLocaleDateString();
+  const totalStudents = students.length;
+  const totalFees = (totalStudents * 1500).toLocaleString();
+
+  board.innerHTML = `
+    <div class="status-item">
+      <h3>Admin Summary</h3>
+      <p>Dashboard date: ${today}</p>
+    </div>
+    <div class="status-item">
+      <h3>Records</h3>
+      <p>Total student records: ${totalStudents}</p>
+    </div>
+    <div class="status-item">
+      <h3>Fees Snapshot</h3>
+      <p>Estimated due fees: ${totalFees}</p>
+    </div>
+  `;
 }
 
 function getStudentImage(student) {
@@ -239,4 +407,6 @@ function rollv() {
   return val("roll");
 }
 
+initSidebarNavigation();
+switchView("profile");
 displayStudents();
