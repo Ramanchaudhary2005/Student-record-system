@@ -2,6 +2,7 @@ const students = [];
 let currentView = "profile";
 let currentSortSubject = "";
 const attendanceByRoll = Object.create(null);
+const DEFAULT_TOTAL_FEE = 1500;
 
 const DEFAULT_PHOTO = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
@@ -49,6 +50,8 @@ function updateStudent() {
   student.os = updated.os;
   student.dbms = updated.dbms;
   student.cn = updated.cn;
+  student.feeTotal = updated.feeTotal;
+  student.feePaid = updated.feePaid;
   student.total = updated.total;
   student.percentage = updated.percentage;
   student.photoURL = updated.photoURL;
@@ -89,6 +92,7 @@ function searchStudent() {
   }
 
   const topperTag = getTopperTag(student);
+  const feeInfo = getFeeInfo(student);
   document.getElementById("result").innerHTML = `
     <div class="result-card">
       <img class="result-avatar" src="${getStudentImage(student)}" alt="student photo">
@@ -99,6 +103,9 @@ function searchStudent() {
         <p><span>Address:</span> ${escapeHtml(student.address || "-")}</p>
         <p><span>Total:</span> ${student.total} / 400</p>
         <p><span>Percentage:</span> ${student.percentage}%</p>
+        <p><span>Total Fee:</span> ${formatAmount(feeInfo.feeTotal)}</p>
+        <p><span>Paid Fee:</span> ${formatAmount(feeInfo.feePaid)}</p>
+        <p><span>Left Fee:</span> ${formatAmount(feeInfo.feeDue)}</p>
       </div>
     </div>
   `;
@@ -141,11 +148,13 @@ function displayStudents() {
       <th>Roll</th>
       <th>Total</th>
       <th>%</th>
+      <th>Paid</th>
+      <th>Left</th>
     </tr>
   `;
 
   if (!students.length) {
-    table.innerHTML += `<tr><td class="table-empty" colspan="5">No student records yet.</td></tr>`;
+    table.innerHTML += `<tr><td class="table-empty" colspan="7">No student records yet.</td></tr>`;
     updateStats();
     refreshBoards();
     return;
@@ -162,6 +171,10 @@ function displayStudents() {
     const subjectBadge = currentSortSubject && getSubjectScore(student, currentSortSubject) === maxSubjectScore
       ? `<span class="tag-top">${escapeHtml(subjectLabel)} TOP</span>`
       : "";
+    const feeInfo = getFeeInfo(student);
+    const dueChip = feeInfo.feeDue === 0
+      ? `<span class="fee-chip fee-paid">Paid</span>`
+      : `<span class="fee-chip fee-left">${formatAmount(feeInfo.feeDue)} left</span>`;
     table.innerHTML += `
       <tr>
         <td><img src="${getStudentImage(student)}" alt="student photo"></td>
@@ -169,6 +182,8 @@ function displayStudents() {
         <td>${escapeHtml(student.roll)}</td>
         <td>${student.total}</td>
         <td>${student.percentage}%</td>
+        <td>${formatAmount(feeInfo.feePaid)}</td>
+        <td>${dueChip}</td>
       </tr>
     `;
   }
@@ -285,8 +300,11 @@ function parseStudentRowByHeader(row, headerRow) {
   const os = parseMark(getValueByAliases(row, headerRow, HEADER_ALIASES.os));
   const dbms = parseMark(getValueByAliases(row, headerRow, HEADER_ALIASES.dbms));
   const cn = parseMark(getValueByAliases(row, headerRow, HEADER_ALIASES.cn));
+  const feeTotal = getValueByAliases(row, headerRow, HEADER_ALIASES.feetotal);
+  const feePaid = getValueByAliases(row, headerRow, HEADER_ALIASES.feepaid);
+  const feeDue = getValueByAliases(row, headerRow, HEADER_ALIASES.feedue);
 
-  return createStudentFromImport({ roll, name, phone, address, dsa, os, dbms, cn });
+  return createStudentFromImport({ roll, name, phone, address, dsa, os, dbms, cn, feeTotal, feePaid, feeDue });
 }
 
 function parseStudentRowByIndex(row) {
@@ -304,8 +322,11 @@ function parseStudentRowByIndex(row) {
   const os = parseMark(row[5]);
   const dbms = parseMark(row[6]);
   const cn = parseMark(row[7]);
+  const feeTotal = row[8] ?? "";
+  const feePaid = row[9] ?? "";
+  const feeDue = row[10] ?? "";
 
-  return createStudentFromImport({ roll, name, phone, address, dsa, os, dbms, cn });
+  return createStudentFromImport({ roll, name, phone, address, dsa, os, dbms, cn, feeTotal, feePaid, feeDue });
 }
 
 function upsertImportedStudents(importedStudents) {
@@ -329,6 +350,8 @@ function upsertImportedStudents(importedStudents) {
       existing.os = imported.os;
       existing.dbms = imported.dbms;
       existing.cn = imported.cn;
+      existing.feeTotal = imported.feeTotal;
+      existing.feePaid = imported.feePaid;
       existing.total = imported.total;
       existing.percentage = imported.percentage;
       updated += 1;
@@ -342,9 +365,10 @@ function upsertImportedStudents(importedStudents) {
   return { added, updated, skipped };
 }
 
-function createStudentFromImport({ roll, name, phone, address, dsa, os, dbms, cn }) {
+function createStudentFromImport({ roll, name, phone, address, dsa, os, dbms, cn, feeTotal, feePaid, feeDue }) {
   const total = dsa + os + dbms + cn;
   const percentage = (total / 4).toFixed(2);
+  const fees = normalizeFeeValues(feeTotal, feePaid, feeDue);
 
   return {
     roll,
@@ -355,6 +379,8 @@ function createStudentFromImport({ roll, name, phone, address, dsa, os, dbms, cn
     os,
     dbms,
     cn,
+    feeTotal: fees.feeTotal,
+    feePaid: fees.feePaid,
     total,
     percentage,
     photoURL: ""
@@ -392,6 +418,77 @@ function parseMark(value) {
   }
 
   return Math.max(0, Math.min(100, numeric));
+}
+
+function parseMoney(value, fallback = 0) {
+  const numeric = Number(String(value ?? "").replace(/[^\d.-]/g, ""));
+  if (!Number.isFinite(numeric)) {
+    return fallback;
+  }
+
+  return Math.max(0, numeric);
+}
+
+function hasValue(value) {
+  return String(value ?? "").trim() !== "";
+}
+
+function normalizeFeeValues(feeTotalValue, feePaidValue, feeDueValue = "") {
+  let feeTotal = parseMoney(feeTotalValue, DEFAULT_TOTAL_FEE);
+  if (feeTotal <= 0) {
+    feeTotal = DEFAULT_TOTAL_FEE;
+  }
+
+  let feePaid;
+  if (hasValue(feePaidValue)) {
+    feePaid = parseMoney(feePaidValue, 0);
+  } else if (hasValue(feeDueValue)) {
+    const feeDue = Math.min(parseMoney(feeDueValue, feeTotal), feeTotal);
+    feePaid = feeTotal - feeDue;
+  } else {
+    feePaid = 0;
+  }
+
+  feePaid = Math.min(Math.max(0, feePaid), feeTotal);
+  return { feeTotal, feePaid, feeDue: Math.max(0, feeTotal - feePaid) };
+}
+
+function getFeeInfo(student) {
+  const fees = normalizeFeeValues(student?.feeTotal, student?.feePaid);
+  return { feeTotal: fees.feeTotal, feePaid: fees.feePaid, feeDue: fees.feeDue };
+}
+
+function getFeeTotals() {
+  return students.reduce(
+    (totals, student) => {
+      const feeInfo = getFeeInfo(student);
+      totals.total += feeInfo.feeTotal;
+      totals.paid += feeInfo.feePaid;
+      totals.due += feeInfo.feeDue;
+      return totals;
+    },
+    { total: 0, paid: 0, due: 0 }
+  );
+}
+
+function formatAmount(value) {
+  const amount = Number(value);
+  const safeAmount = Number.isFinite(amount) ? amount : 0;
+  return safeAmount.toLocaleString(undefined, {
+    minimumFractionDigits: safeAmount % 1 === 0 ? 0 : 2,
+    maximumFractionDigits: 2
+  });
+}
+
+function resetFeeInputs() {
+  const feeTotalInput = document.getElementById("feeTotal");
+  const feePaidInput = document.getElementById("feePaid");
+  if (feeTotalInput) {
+    feeTotalInput.value = String(DEFAULT_TOTAL_FEE);
+  }
+  if (feePaidInput) {
+    feePaidInput.value = "0";
+  }
 }
 
 function initSidebarNavigation() {
@@ -432,6 +529,7 @@ function buildStudentFromForm(existingPhoto = "", keepOldPhoto = false) {
   const os = num("os");
   const dbms = num("dbms");
   const cn = num("cn");
+  const fees = normalizeFeeValues(val("feeTotal"), val("feePaid"));
 
   const total = dsa + os + dbms + cn;
   const percentage = (total / 4).toFixed(2);
@@ -449,6 +547,8 @@ function buildStudentFromForm(existingPhoto = "", keepOldPhoto = false) {
     os,
     dbms,
     cn,
+    feeTotal: fees.feeTotal,
+    feePaid: fees.feePaid,
     total,
     percentage,
     photoURL
@@ -461,9 +561,9 @@ function updateStats() {
   const averageScore = totalStudents
     ? (students.reduce((sum, student) => sum + Number(student.percentage), 0) / totalStudents).toFixed(2)
     : "0.00";
-  const dueFees = (totalStudents * 1500).toLocaleString();
+  const feeTotals = getFeeTotals();
 
-  textOf("statFees", dueFees);
+  textOf("statFees", formatAmount(feeTotals.due));
   textOf("statStudents", String(totalStudents));
   textOf("statTopper", String(topScore));
   textOf("statAverage", `${averageScore}%`);
@@ -682,6 +782,8 @@ function renderMessagesView() {
   const averageScore = (
     students.reduce((sum, student) => sum + Number(student.percentage), 0) / students.length
   ).toFixed(2);
+  const feeTotals = getFeeTotals();
+  const dueCount = students.filter((student) => getFeeInfo(student).feeDue > 0).length;
 
   board.innerHTML = `
     <div class="status-item">
@@ -693,8 +795,8 @@ function renderMessagesView() {
       <p>Current class average is ${averageScore}% with ${students.length} active records.</p>
     </div>
     <div class="status-item">
-      <h3>Reminder</h3>
-      <p>Use Search to open any record quickly and Update to modify details.</p>
+      <h3>Fee Reminder</h3>
+      <p>${dueCount} students have pending fees. Total left: ${formatAmount(feeTotals.due)}.</p>
     </div>
   `;
 }
@@ -707,7 +809,7 @@ function renderAccountView() {
 
   const today = new Date().toLocaleDateString();
   const totalStudents = students.length;
-  const totalFees = (totalStudents * 1500).toLocaleString();
+  const feeTotals = getFeeTotals();
 
   board.innerHTML = `
     <div class="status-item">
@@ -719,8 +821,8 @@ function renderAccountView() {
       <p>Total student records: ${totalStudents}</p>
     </div>
     <div class="status-item">
-      <h3>Fees Snapshot</h3>
-      <p>Estimated due fees: ${totalFees}</p>
+      <h3>Fee Snapshot</h3>
+      <p>Total Fee: ${formatAmount(feeTotals.total)} | Paid: ${formatAmount(feeTotals.paid)} | Left: ${formatAmount(feeTotals.due)}</p>
     </div>
   `;
 }
@@ -748,10 +850,12 @@ function setResultMessage(message) {
 }
 
 function clearForm() {
-  const ids = ["roll", "name", "phone", "address", "dsa", "os", "dbms", "cn", "photo"];
+  const ids = ["roll", "name", "phone", "address", "dsa", "os", "dbms", "cn", "feeTotal", "feePaid", "photo"];
   for (const id of ids) {
     document.getElementById(id).value = "";
   }
+
+  resetFeeInputs();
 }
 
 function textOf(id, value) {
@@ -791,7 +895,10 @@ const HEADER_ALIASES = {
   dsa: ["dsa", "dsamarks", "dsa_score", "dsascore"],
   os: ["os", "osmarks", "os_score", "osscore", "operatingsystem", "operatingsystems"],
   dbms: ["dbms", "dbmsmarks", "dbms_score", "dbmsscore"],
-  cn: ["cn", "cnmarks", "cn_score", "cnscore", "computernetwork", "computernetworks"]
+  cn: ["cn", "cnmarks", "cn_score", "cnscore", "computernetwork", "computernetworks"],
+  feetotal: ["feetotal", "totalfee", "feestotal", "fees", "annualfee", "amount"],
+  feepaid: ["feepaid", "paidfee", "paid", "amountpaid", "payment"],
+  feedue: ["feedue", "leftfee", "duefee", "pendingfee", "balance", "remainingfee"]
 };
 
 const SUBJECT_LABELS = {
@@ -803,4 +910,5 @@ const SUBJECT_LABELS = {
 
 initSidebarNavigation();
 switchView("profile");
+resetFeeInputs();
 displayStudents();

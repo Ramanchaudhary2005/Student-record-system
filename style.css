@@ -563,6 +563,28 @@ input[type="file"] {
   background: linear-gradient(135deg, #ff8b2e, #ff5d2e);
 }
 
+.fee-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.fee-paid {
+  color: #176340;
+  background: #daf4e7;
+  border-color: #97d9b5;
+}
+
+.fee-left {
+  color: #8e2a2a;
+  background: #ffe2e2;
+  border-color: #f5b0b0;
+}
+
 .table-panel {
   animation-delay: 0.24s;
 }
@@ -577,7 +599,7 @@ input[type="file"] {
 table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 560px;
+  min-width: 760px;
 }
 
 th,

@@ -59,6 +59,12 @@
             <label>Address
               <input id="address" placeholder="Address">
             </label>
+            <label>Total Fee
+              <input id="feeTotal" type="number" min="0" placeholder="e.g. 1500">
+            </label>
+            <label>Paid Fee
+              <input id="feePaid" type="number" min="0" placeholder="e.g. 1000">
+            </label>
             <label class="full-width">Photo
               <input type="file" id="photo" accept="image/*">
             </label>
@@ -135,7 +141,7 @@
                 <input id="excelFile" type="file" accept=".xlsx,.xls,.csv">
                 <button class="import-btn" type="button" onclick="importStudentsFromExcel()">Import</button>
               </div>
-              <p class="import-hint">Columns: Roll, Name, Phone, Address, DSA, OS, DBMS, CN.</p>
+              <p class="import-hint">Columns: Roll, Name, Phone, Address, DSA, OS, DBMS, CN, FeeTotal, FeePaid.</p>
             </div>
           </div>
         </article>
@@ -158,6 +164,8 @@
               <th>Roll</th>
               <th>Total</th>
               <th>%</th>
+              <th>Paid</th>
+              <th>Left</th>
             </tr>
           </table>
         </div>
