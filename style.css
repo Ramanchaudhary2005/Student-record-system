@@ -625,6 +625,131 @@ td img {
   gap: 10px;
 }
 
+.attendance-board {
+  gap: 12px;
+}
+
+.attendance-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.attendance-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attendance-chip {
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.chip-present {
+  color: #16643d;
+  background: #daf4e7;
+  border-color: #97d9b5;
+}
+
+.chip-absent {
+  color: #8e2a2a;
+  background: #ffe2e2;
+  border-color: #f5b0b0;
+}
+
+.chip-unmarked {
+  color: #485d76;
+  background: #e9f0f8;
+  border-color: #c3d3e5;
+}
+
+.attendance-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.attendance-btn {
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 700;
+  padding: 9px 12px;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.attendance-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.btn-present {
+  background: #1f9c67;
+}
+
+.btn-absent {
+  background: #d65c5c;
+}
+
+.btn-clear {
+  background: #4f6580;
+}
+
+.attendance-table-wrap {
+  margin-top: 0;
+}
+
+.attendance-table {
+  min-width: 620px;
+}
+
+.attendance-cell {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.attendance-select {
+  width: 150px;
+  min-width: 130px;
+}
+
+.attendance-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 8px;
+  border-radius: 999px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border: 1px solid transparent;
+}
+
+.att-present {
+  color: #16643d;
+  background: #daf4e7;
+  border-color: #97d9b5;
+}
+
+.att-absent {
+  color: #8e2a2a;
+  background: #ffe2e2;
+  border-color: #f5b0b0;
+}
+
+.att-unmarked {
+  color: #485d76;
+  background: #e9f0f8;
+  border-color: #c3d3e5;
+}
+
 .status-item {
   border: 1px solid var(--panel-border);
   background: color-mix(in srgb, var(--panel) 93%, #dceeff 7%);
@@ -722,6 +847,10 @@ td img {
 
   .import-row {
     flex-direction: column;
+  }
+
+  .attendance-toolbar {
+    align-items: flex-start;
   }
 
   .result-card {

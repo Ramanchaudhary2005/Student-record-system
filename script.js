@@ -1,6 +1,7 @@
 const students = [];
 let currentView = "profile";
 let currentSortSubject = "";
+const attendanceByRoll = Object.create(null);
 
 const DEFAULT_PHOTO = `data:image/svg+xml;utf8,${encodeURIComponent(`
 <svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 120 120">
@@ -67,6 +68,7 @@ function deleteStudent() {
   }
 
   students.splice(index, 1);
+  delete attendanceByRoll[roll];
   clearForm();
   setResultMessage("Student record deleted.");
   displayStudents();
@@ -130,6 +132,7 @@ function sortSubjectTopper() {
 
 function displayStudents() {
   const table = document.getElementById("table");
+  syncAttendanceStore();
 
   table.innerHTML = `
     <tr>
@@ -510,34 +513,153 @@ function renderAttendanceView() {
     return;
   }
 
+  syncAttendanceStore();
+
   if (!students.length) {
     board.innerHTML = `
       <div class="status-item">
         <h3>No attendance data</h3>
-        <p>Add students to generate attendance status.</p>
+        <p>Add students to start attendance marking.</p>
       </div>
     `;
     return;
   }
 
-  const items = students
-    .map((student) => {
-      const attendance = Math.max(60, Math.min(99, Math.round(Number(student.percentage) * 0.8 + 20)));
-      const status = attendance >= 90 ? "Excellent" : attendance >= 75 ? "Regular" : "Need Improvement";
-      return { student, attendance, status };
-    })
-    .sort((a, b) => b.attendance - a.attendance);
+  const summary = getAttendanceSummary();
 
-  board.innerHTML = items
-    .map(
-      ({ student, attendance, status }) => `
-        <div class="status-item">
-          <h3>${escapeHtml(student.name)} (${escapeHtml(student.roll)})</h3>
-          <p>Attendance: ${attendance}% | Status: ${status}</p>
-        </div>
-      `
-    )
-    .join("");
+  board.innerHTML = `
+    <div class="attendance-toolbar">
+      <div class="attendance-summary">
+        <span class="attendance-chip chip-present">Present: ${summary.present}</span>
+        <span class="attendance-chip chip-absent">Absent: ${summary.absent}</span>
+        <span class="attendance-chip chip-unmarked">Unmarked: ${summary.unmarked}</span>
+      </div>
+      <div class="attendance-actions">
+        <button type="button" class="attendance-btn btn-present" onclick="markAllAttendance('present')">Mark All Present</button>
+        <button type="button" class="attendance-btn btn-absent" onclick="markAllAttendance('absent')">Mark All Absent</button>
+        <button type="button" class="attendance-btn btn-clear" onclick="clearAttendanceMarks()">Clear</button>
+      </div>
+    </div>
+    <div class="table-wrap attendance-table-wrap">
+      <table class="attendance-table">
+        <tr>
+          <th>Roll</th>
+          <th>Name</th>
+          <th>Status</th>
+        </tr>
+        ${students
+          .map((student) => {
+            const status = attendanceByRoll[student.roll] ?? "";
+            const statusLabel = getAttendanceStatusLabel(status);
+            const statusClass = status ? `att-${status}` : "att-unmarked";
+
+            return `
+              <tr>
+                <td>${escapeHtml(student.roll)}</td>
+                <td>${escapeHtml(student.name)}</td>
+                <td>
+                  <div class="attendance-cell">
+                    <select class="attendance-select" data-roll="${escapeHtml(student.roll)}">
+                      <option value="" ${status === "" ? "selected" : ""}>Select</option>
+                      <option value="present" ${status === "present" ? "selected" : ""}>Present</option>
+                      <option value="absent" ${status === "absent" ? "selected" : ""}>Absent</option>
+                    </select>
+                    <span class="attendance-tag ${statusClass}">${statusLabel}</span>
+                  </div>
+                </td>
+              </tr>
+            `;
+          })
+          .join("")}
+      </table>
+    </div>
+  `;
+
+  board.querySelectorAll(".attendance-select").forEach((select) => {
+    select.addEventListener("change", () => {
+      setAttendance(select.dataset.roll, select.value);
+    });
+  });
+}
+
+function setAttendance(roll, status) {
+  if (!roll) {
+    return;
+  }
+
+  if (status === "present" || status === "absent") {
+    attendanceByRoll[roll] = status;
+  } else {
+    delete attendanceByRoll[roll];
+  }
+
+  if (currentView === "attendance") {
+    renderAttendanceView();
+  }
+}
+
+function markAllAttendance(status) {
+  if (status !== "present" && status !== "absent") {
+    return;
+  }
+
+  for (const student of students) {
+    attendanceByRoll[student.roll] = status;
+  }
+
+  if (currentView === "attendance") {
+    renderAttendanceView();
+  }
+}
+
+function clearAttendanceMarks() {
+  for (const student of students) {
+    delete attendanceByRoll[student.roll];
+  }
+
+  if (currentView === "attendance") {
+    renderAttendanceView();
+  }
+}
+
+function getAttendanceSummary() {
+  let present = 0;
+  let absent = 0;
+  let unmarked = 0;
+
+  for (const student of students) {
+    const status = attendanceByRoll[student.roll];
+    if (status === "present") {
+      present += 1;
+    } else if (status === "absent") {
+      absent += 1;
+    } else {
+      unmarked += 1;
+    }
+  }
+
+  return { present, absent, unmarked };
+}
+
+function getAttendanceStatusLabel(status) {
+  if (status === "present") {
+    return "Present";
+  }
+
+  if (status === "absent") {
+    return "Absent";
+  }
+
+  return "Not Marked";
+}
+
+function syncAttendanceStore() {
+  const validRolls = new Set(students.map((student) => student.roll));
+  Object.keys(attendanceByRoll).forEach((roll) => {
+    if (!validRolls.has(roll)) {
+      delete attendanceByRoll[roll];
+    }
+  });
 }
 
 function renderMessagesView() {
