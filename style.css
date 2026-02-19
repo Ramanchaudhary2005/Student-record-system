@@ -297,7 +297,8 @@ label {
   letter-spacing: 0.45px;
 }
 
-input {
+input,
+select {
   width: 100%;
   border: 1px solid var(--input-border);
   background: var(--input-bg);
@@ -307,7 +308,8 @@ input {
   outline: none;
 }
 
-input:focus {
+input:focus,
+select:focus {
   border-color: #4ca2e6;
   box-shadow: 0 0 0 2px rgba(76, 162, 230, 0.17);
 }
@@ -433,6 +435,81 @@ input[type="file"] {
 
 .secondary-actions button:nth-child(2) {
   background: #5f738c;
+}
+
+.subject-sort-row {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+#subjectSort {
+  flex: 1;
+}
+
+.subject-sort-btn {
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 700;
+  padding: 10px 14px;
+  background: #2e7fbc;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.subject-sort-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.import-box {
+  margin-top: 12px;
+  border: 1px dashed var(--panel-border);
+  border-radius: 10px;
+  padding: 12px;
+  background: color-mix(in srgb, var(--panel) 94%, #d9ebff 6%);
+}
+
+.import-box h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.import-box p {
+  margin: 5px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.import-row {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+}
+
+#excelFile {
+  flex: 1;
+}
+
+.import-btn {
+  border: 0;
+  border-radius: 8px;
+  cursor: pointer;
+  color: #fff;
+  font-weight: 700;
+  padding: 10px 14px;
+  background: #1f9c67;
+  transition: transform 0.2s ease, filter 0.2s ease;
+}
+
+.import-btn:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.05);
+}
+
+.import-hint {
+  margin-top: 8px;
 }
 
 .result-panel {
@@ -636,6 +713,14 @@ td img {
   }
 
   .search-row {
+    flex-direction: column;
+  }
+
+  .subject-sort-row {
+    flex-direction: column;
+  }
+
+  .import-row {
     flex-direction: column;
   }
 
