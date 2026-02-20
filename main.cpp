@@ -9,6 +9,7 @@ struct Student {
     int roll;
     string name;
     int dsa, os, dbms, cn;
+    int totalFee, feePaid, feeLeft;
     int total;
     double percentage;
 };
@@ -24,6 +25,10 @@ private:
     void calculate(Student &s) {
         s.total = s.dsa + s.os + s.dbms + s.cn;
         s.percentage = s.total / 4.0;
+        s.totalFee = max(0, s.totalFee);
+        s.feePaid = max(0, s.feePaid);
+        if (s.feePaid > s.totalFee) s.feePaid = s.totalFee;
+        s.feeLeft = s.totalFee - s.feePaid;
     }
 
     void rebuildIndex() {
@@ -191,7 +196,20 @@ public:
             cout << s.roll << " "
                  << s.name << " "
                  << s.total << " "
-                 << s.percentage << "%\n";
+                 << s.percentage << "% "
+                 << "| Fee Paid: " << s.feePaid
+                 << " | Fee Left: " << s.feeLeft
+                 << " | Status: " << (s.feeLeft == 0 ? "Paid" : "Unpaid") << "\n";
+    }
+
+    void feeReport() {
+        cout << "\nFee Report:\n";
+        for (auto &s : students)
+            cout << "Roll " << s.roll
+                 << " (" << s.name << ") "
+                 << "Paid: " << s.feePaid
+                 << ", Left: " << s.feeLeft
+                 << ", " << (s.feeLeft == 0 ? "Paid" : "Unpaid") << "\n";
     }
 
     void complexityInfo() {
@@ -207,12 +225,13 @@ public:
 int main() {
     StudentSystem system;
 
-    system.addStudent({101, "Aman", 92, 88, 95, 90});
-    system.addStudent({102, "Priya", 85, 91, 89, 93});
-    system.addStudent({103, "Rohit", 96, 90, 92, 94});
+    system.addStudent({101, "Aman", 92, 88, 95, 90, 50000, 50000, 0, 0, 0.0});
+    system.addStudent({102, "Priya", 85, 91, 89, 93, 50000, 35000, 0, 0, 0.0});
+    system.addStudent({103, "Rohit", 96, 90, 92, 94, 50000, 20000, 0, 0, 0.0});
 
     cout << "Initial Records:\n";
     system.display();
+    system.feeReport();
 
     cout << "\nSorted by Marks (Merge Sort):\n";
     system.sortByMarks();
