@@ -1,156 +1,228 @@
-#include <algorithm>
-#include <array>
-#include <iomanip>
 #include <iostream>
-#include <numeric>
-#include <queue>
-#include <string>
 #include <vector>
+#include <unordered_map>
+#include <stack>
+#include <algorithm>
 using namespace std;
 
 struct Student {
-    int roll = 0;
-    string name, phone, address;
-    int dsa = 0, os = 0, dbms = 0, cn = 0;
-    int total = 0;
-    double percentage = 0.0;
+    int roll;
+    string name;
+    int dsa, os, dbms, cn;
+    int total;
+    double percentage;
 };
 
 class StudentSystem {
 private:
     vector<Student> students;
-    vector<size_t> rollOrder;
+    unordered_map<int, int> rollIndex;
 
-    static void calculate(Student &s) {
-        array<int, 4> marks = {s.dsa, s.os, s.dbms, s.cn};
-        s.total = accumulate(marks.begin(), marks.end(), 0);
-        s.percentage = static_cast<double>(s.total) / marks.size();
+    stack<vector<Student>> undoStack;
+    stack<vector<Student>> redoStack;
+
+    void calculate(Student &s) {
+        s.total = s.dsa + s.os + s.dbms + s.cn;
+        s.percentage = s.total / 4.0;
+    }
+
+    void rebuildIndex() {
+        rollIndex.clear();
+        for (int i = 0; i < static_cast<int>(students.size()); i++)
+            rollIndex[students[i].roll] = i;
+    }
+
+    void saveState() {
+        undoStack.push(students);
+        while (!redoStack.empty()) redoStack.pop();
     }
 
 public:
-    bool addStudent(Student s) {
-        auto pos = lower_bound(rollOrder.begin(), rollOrder.end(), s.roll, [this](size_t idx, int roll) {
-            return students[idx].roll < roll;
-        });
-        if (pos != rollOrder.end() && students[*pos].roll == s.roll) {
-            return false;
+    // Add Student
+    void addStudent(Student s) {
+        if (rollIndex.count(s.roll)) {
+            cout << "Roll already exists\n";
+            return;
         }
-
+        saveState();
         calculate(s);
         students.push_back(s);
-        rollOrder.insert(pos, students.size() - 1);
-        return true;
+        rebuildIndex();
     }
 
-    const Student *findByRoll(int roll) const {
-        auto pos = lower_bound(rollOrder.begin(), rollOrder.end(), roll, [this](size_t idx, int targetRoll) {
-            return students[idx].roll < targetRoll;
-        });
-        if (pos == rollOrder.end() || students[*pos].roll != roll) {
-            return nullptr;
-        }
-        return &students[*pos];
+    // Linear Search
+    int linearSearch(int roll) {
+        for (int i = 0; i < static_cast<int>(students.size()); i++)
+            if (students[i].roll == roll)
+                return i;
+        return -1;
     }
 
-    vector<Student> leaderboard() const {
-        vector<Student> ranked = students;
-        stable_sort(ranked.begin(), ranked.end(), [](const Student &a, const Student &b) {
-            if (a.total == b.total) {
-                return a.roll < b.roll;
-            }
-            return a.total > b.total;
-        });
-        return ranked;
+    // Binary Search (after sorting by roll)
+    int binarySearch(int roll) {
+        sort(students.begin(), students.end(),
+             [](Student a, Student b) {
+                 return a.roll < b.roll;
+             });
+
+        int left = 0, right = static_cast<int>(students.size()) - 1;
+
+        while (left <= right) {
+            int mid = left + (right - left) / 2;
+
+            if (students[mid].roll == roll)
+                return mid;
+            else if (students[mid].roll < roll)
+                left = mid + 1;
+            else
+                right = mid - 1;
+        }
+        return -1;
     }
 
-    vector<Student> topK(int k) const {
-        if (k <= 0 || students.empty()) {
-            return {};
+    // ----------- MERGE SORT (by total marks) -----------
+
+    void merge(vector<Student> &arr, int l, int m, int r) {
+        int n1 = m - l + 1;
+        int n2 = r - m;
+
+        vector<Student> L(n1), R(n2);
+
+        for (int i = 0; i < n1; i++)
+            L[i] = arr[l + i];
+        for (int j = 0; j < n2; j++)
+            R[j] = arr[m + 1 + j];
+
+        int i = 0, j = 0, k = l;
+
+        while (i < n1 && j < n2) {
+            if (L[i].total >= R[j].total)
+                arr[k++] = L[i++];
+            else
+                arr[k++] = R[j++];
         }
 
-        using Node = pair<int, size_t>;
-        auto cmp = [](const Node &a, const Node &b) { return a.first > b.first; };
-        priority_queue<Node, vector<Node>, decltype(cmp)> minHeap(cmp);
+        while (i < n1)
+            arr[k++] = L[i++];
 
-        for (size_t i = 0; i < students.size(); ++i) {
-            minHeap.push({students[i].total, i});
-            if (static_cast<int>(minHeap.size()) > k) {
-                minHeap.pop();
-            }
+        while (j < n2)
+            arr[k++] = R[j++];
+    }
+
+    void mergeSort(vector<Student> &arr, int l, int r) {
+        if (l < r) {
+            int m = l + (r - l) / 2;
+            mergeSort(arr, l, m);
+            mergeSort(arr, m + 1, r);
+            merge(arr, l, m, r);
         }
+    }
 
-        vector<size_t> idx;
-        while (!minHeap.empty()) {
-            idx.push_back(minHeap.top().second);
-            minHeap.pop();
+    void sortByMarks() {
+        if (students.empty()) return;
+        saveState();
+        mergeSort(students, 0, static_cast<int>(students.size()) - 1);
+        rebuildIndex();
+    }
+
+    // ----------- MANUAL MAX HEAP -----------
+
+    void heapify(vector<Student> &arr, int n, int i) {
+        int largest = i;
+        int left = 2 * i + 1;
+        int right = 2 * i + 2;
+
+        if (left < n && arr[left].total > arr[largest].total)
+            largest = left;
+
+        if (right < n && arr[right].total > arr[largest].total)
+            largest = right;
+
+        if (largest != i) {
+            swap(arr[i], arr[largest]);
+            heapify(arr, n, largest);
         }
+    }
 
-        sort(idx.begin(), idx.end(), [this](size_t a, size_t b) {
-            if (students[a].total == students[b].total) {
-                return students[a].roll < students[b].roll;
-            }
-            return students[a].total > students[b].total;
-        });
+    void buildHeap(vector<Student> &arr) {
+        for (int i = static_cast<int>(arr.size()) / 2 - 1; i >= 0; i--)
+            heapify(arr, static_cast<int>(arr.size()), i);
+    }
+
+    vector<Student> topK(int k) {
+        vector<Student> heap = students;
+        buildHeap(heap);
 
         vector<Student> result;
-        for (size_t id : idx) {
-            result.push_back(students[id]);
+        for (int i = static_cast<int>(heap.size()) - 1; i >= static_cast<int>(heap.size()) - k && i >= 0; i--) {
+            swap(heap[0], heap[i]);
+            result.push_back(heap[i]);
+            heapify(heap, i, 0);
         }
         return result;
     }
 
-    const Student *topperByPriorityQueue() const {
-        if (students.empty()) {
-            return nullptr;
+    // Undo
+    void undo() {
+        if (undoStack.empty()) {
+            cout << "Nothing to undo\n";
+            return;
         }
+        redoStack.push(students);
+        students = undoStack.top();
+        undoStack.pop();
+        rebuildIndex();
+    }
 
-        using Node = pair<int, size_t>;
-        auto cmp = [this](const Node &a, const Node &b) {
-            if (a.first == b.first) {
-                return students[a.second].roll > students[b.second].roll;
-            }
-            return a.first < b.first;
-        };
-        priority_queue<Node, vector<Node>, decltype(cmp)> maxHeap(cmp);
-
-        for (size_t i = 0; i < students.size(); ++i) {
-            maxHeap.push({students[i].total, i});
+    // Redo
+    void redo() {
+        if (redoStack.empty()) {
+            cout << "Nothing to redo\n";
+            return;
         }
+        undoStack.push(students);
+        students = redoStack.top();
+        redoStack.pop();
+        rebuildIndex();
+    }
 
-        return &students[maxHeap.top().second];
+    void display() {
+        for (auto &s : students)
+            cout << s.roll << " "
+                 << s.name << " "
+                 << s.total << " "
+                 << s.percentage << "%\n";
+    }
+
+    void complexityInfo() {
+        cout << "\nTime Complexities:\n";
+        cout << "Linear Search: O(n)\n";
+        cout << "Binary Search: O(log n)\n";
+        cout << "Merge Sort: O(n log n)\n";
+        cout << "Heap Top-K: O(n log k)\n";
+        cout << "HashMap Search: O(1) average\n";
     }
 };
-
-static void printStudent(const Student &s) {
-    cout << "Roll: " << s.roll << " | Name: " << s.name << " | Total: " << s.total << " | %: "
-         << fixed << setprecision(2) << s.percentage << '\n';
-}
 
 int main() {
     StudentSystem system;
 
-    system.addStudent({101, "Aman", "9876543210", "Delhi", 92, 88, 95, 90});
-    system.addStudent({102, "Priya", "9876501234", "Lucknow", 85, 91, 89, 93});
-    system.addStudent({103, "Rohit", "9876512345", "Jaipur", 96, 90, 92, 94});
+    system.addStudent({101, "Aman", 92, 88, 95, 90});
+    system.addStudent({102, "Priya", 85, 91, 89, 93});
+    system.addStudent({103, "Rohit", 96, 90, 92, 94});
 
-    cout << "Advanced Student System Ready\n";
+    cout << "Initial Records:\n";
+    system.display();
 
-    const Student *found = system.findByRoll(102);
-    if (found) {
-        cout << "Found -> ";
-        printStudent(*found);
-    } else {
-        cout << "Not found\n";
-    }
+    cout << "\nSorted by Marks (Merge Sort):\n";
+    system.sortByMarks();
+    system.display();
 
-    const Student *topper = system.topperByPriorityQueue();
-    if (topper) {
-        cout << "\nTopper (Priority Queue):\n";
-        printStudent(*topper);
-    }
+    cout << "\nTop 2 Students (Heap):\n";
+    for (auto &s : system.topK(2))
+        cout << s.name << " " << s.total << endl;
 
-    cout << "\nTop 2 Students:\n";
-    for (const Student &s : system.topK(2)) {
-        printStudent(s);
-    }
+    system.complexityInfo();
+
+    return 0;
 }
