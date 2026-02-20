@@ -5,7 +5,6 @@
 #include <numeric>
 #include <queue>
 #include <string>
-#include <unordered_map>
 #include <vector>
 using namespace std;
 
@@ -20,7 +19,7 @@ struct Student {
 class StudentSystem {
 private:
     vector<Student> students;
-    unordered_map<int, size_t> rollToIndex;
+    vector<size_t> rollOrder;
 
     static void calculate(Student &s) {
         array<int, 4> marks = {s.dsa, s.os, s.dbms, s.cn};
@@ -30,22 +29,27 @@ private:
 
 public:
     bool addStudent(Student s) {
-        if (rollToIndex.count(s.roll)) {
+        auto pos = lower_bound(rollOrder.begin(), rollOrder.end(), s.roll, [this](size_t idx, int roll) {
+            return students[idx].roll < roll;
+        });
+        if (pos != rollOrder.end() && students[*pos].roll == s.roll) {
             return false;
         }
 
         calculate(s);
-        rollToIndex[s.roll] = students.size();
         students.push_back(s);
+        rollOrder.insert(pos, students.size() - 1);
         return true;
     }
 
     const Student *findByRoll(int roll) const {
-        auto it = rollToIndex.find(roll);
-        if (it == rollToIndex.end()) {
+        auto pos = lower_bound(rollOrder.begin(), rollOrder.end(), roll, [this](size_t idx, int targetRoll) {
+            return students[idx].roll < targetRoll;
+        });
+        if (pos == rollOrder.end() || students[*pos].roll != roll) {
             return nullptr;
         }
-        return &students[it->second];
+        return &students[*pos];
     }
 
     vector<Student> leaderboard() const {
@@ -94,6 +98,27 @@ public:
         }
         return result;
     }
+
+    const Student *topperByPriorityQueue() const {
+        if (students.empty()) {
+            return nullptr;
+        }
+
+        using Node = pair<int, size_t>;
+        auto cmp = [this](const Node &a, const Node &b) {
+            if (a.first == b.first) {
+                return students[a.second].roll > students[b.second].roll;
+            }
+            return a.first < b.first;
+        };
+        priority_queue<Node, vector<Node>, decltype(cmp)> maxHeap(cmp);
+
+        for (size_t i = 0; i < students.size(); ++i) {
+            maxHeap.push({students[i].total, i});
+        }
+
+        return &students[maxHeap.top().second];
+    }
 };
 
 static void printStudent(const Student &s) {
@@ -116,6 +141,12 @@ int main() {
         printStudent(*found);
     } else {
         cout << "Not found\n";
+    }
+
+    const Student *topper = system.topperByPriorityQueue();
+    if (topper) {
+        cout << "\nTopper (Priority Queue):\n";
+        printStudent(*topper);
     }
 
     cout << "\nTop 2 Students:\n";
