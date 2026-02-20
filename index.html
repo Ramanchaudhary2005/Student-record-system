@@ -94,6 +94,51 @@
             <button type="button" onclick="updateStudent()">Update</button>
             <button type="button" onclick="deleteStudent()">Delete</button>
           </div>
+
+          <section class="form-insight">
+            <div class="insight-head">
+              <h3>Live Student Preview</h3>
+              <p>Fills automatically while you type.</p>
+            </div>
+
+            <div class="insight-grid">
+              <article class="insight-profile">
+                <img id="previewPhoto" alt="Student preview avatar">
+                <div>
+                  <p id="previewName" class="preview-name">Student Name</p>
+                  <p id="previewRoll" class="preview-roll">Roll -</p>
+                  <p id="previewGrade" class="preview-grade grade-basic">Grade -</p>
+                </div>
+              </article>
+
+              <div class="insight-metrics">
+                <div class="mini-progress">
+                  <div class="mini-progress-head">
+                    <span>Academic Readiness</span>
+                    <span id="previewAcademicPercent">0%</span>
+                  </div>
+                  <div class="mini-progress-track">
+                    <span id="previewAcademicBar"></span>
+                  </div>
+                </div>
+
+                <div class="mini-progress">
+                  <div class="mini-progress-head">
+                    <span>Fee Completion</span>
+                    <span id="previewFeePercent">0%</span>
+                  </div>
+                  <div class="mini-progress-track fee-track">
+                    <span id="previewFeeBar"></span>
+                  </div>
+                </div>
+
+                <div class="quick-tags">
+                  <span id="previewDueTag">Due Date -</span>
+                  <span id="previewTotalTag">Total 0 / 400</span>
+                </div>
+              </div>
+            </div>
+          </section>
         </article>
 
         <article class="panel right-panel">
@@ -164,26 +209,6 @@
               <button type="button" class="export-btn print-btn" onclick="printReportCard()">Print Report Card</button>
             </div>
 
-            <div class="fee-box">
-              <h3>Fee Payments</h3>
-              <p>Installment history, due date tracking, late fee, and receipts.</p>
-              <div class="fee-payment-grid">
-                <input id="paymentRoll" placeholder="Roll Number">
-                <input id="paymentAmount" type="number" min="0" placeholder="Installment Amount">
-                <input id="paymentDate" type="date">
-                <select id="paymentMethod" aria-label="Payment method">
-                  <option value="Cash">Cash</option>
-                  <option value="UPI">UPI</option>
-                  <option value="Card">Card</option>
-                  <option value="Bank Transfer">Bank Transfer</option>
-                </select>
-              </div>
-              <input id="paymentNote" class="payment-note" placeholder="Optional note">
-              <div class="fee-actions">
-                <button type="button" class="receipt-btn" onclick="recordPayment()">Add Installment</button>
-                <button type="button" class="receipt-btn secondary" onclick="generateFeeReceipt()">Generate Receipt</button>
-              </div>
-            </div>
           </div>
         </article>
       </section>

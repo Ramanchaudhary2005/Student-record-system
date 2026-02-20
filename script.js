@@ -44,6 +44,7 @@ const DEFAULT_PHOTO = `data:image/svg+xml;utf8,${encodeURIComponent(`
   <path d="M24 109c4-22 17-33 36-33s32 11 36 33" fill="#86a8c9"/>
 </svg>
 `)}`;
+let previewPhotoURL = "";
 
 function val(id) {
   const node = document.getElementById(id);
@@ -287,12 +288,111 @@ function getRecentInstallments(student, count) {
   return [...student.installments].sort((a, b) => b.date.localeCompare(a.date)).slice(0, count);
 }
 
+function setNodeText(id, value) {
+  const node = document.getElementById(id);
+  if (node) {
+    node.textContent = value;
+  }
+}
+
+function setBarPercent(id, percent) {
+  const node = document.getElementById(id);
+  if (node) {
+    node.style.width = `${Math.max(0, Math.min(100, percent))}%`;
+  }
+}
+
+function formatShortDate(isoDate) {
+  if (!isoDate) {
+    return "-";
+  }
+  const date = dateFromISO(isoDate);
+  return date.toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" });
+}
+
+function getGradeMeta(percentage) {
+  if (percentage >= 90) {
+    return { label: "A+", className: "grade-top" };
+  }
+  if (percentage >= 80) {
+    return { label: "A", className: "grade-high" };
+  }
+  if (percentage >= 65) {
+    return { label: "B", className: "grade-mid" };
+  }
+  if (percentage >= 45) {
+    return { label: "C", className: "grade-basic" };
+  }
+  return { label: "D", className: "grade-low" };
+}
+
+function updateFormPreview() {
+  const name = val("name").trim() || "Student Name";
+  const roll = rollv().trim() || "-";
+
+  const dsa = parseMark(val("dsa"));
+  const os = parseMark(val("os"));
+  const dbms = parseMark(val("dbms"));
+  const cn = parseMark(val("cn"));
+
+  const total = dsa + os + dbms + cn;
+  const academicPercent = Math.round((total / 400) * 100);
+
+  const fees = normalizeFeeValues(val("feeTotal"), val("feePaid"));
+  const feePercent = fees.feeTotal > 0 ? Math.round((fees.feePaid / fees.feeTotal) * 100) : 0;
+
+  const dueDate = normalizeDate(val("feeDueDate"));
+  const gradeMeta = getGradeMeta(academicPercent);
+
+  setNodeText("previewName", name);
+  setNodeText("previewRoll", `Roll ${roll}`);
+  setNodeText("previewAcademicPercent", `${academicPercent}%`);
+  setNodeText("previewFeePercent", `${feePercent}%`);
+  setNodeText("previewDueTag", dueDate ? `Due ${formatShortDate(dueDate)}` : "Due Date -");
+  setNodeText("previewTotalTag", `Total ${total} / 400`);
+
+  setBarPercent("previewAcademicBar", academicPercent);
+  setBarPercent("previewFeeBar", feePercent);
+
+  const gradeNode = document.getElementById("previewGrade");
+  if (gradeNode) {
+    gradeNode.textContent = `Grade ${gradeMeta.label}`;
+    gradeNode.className = `preview-grade ${gradeMeta.className}`;
+  }
+
+  const previewPhoto = document.getElementById("previewPhoto");
+  if (previewPhoto) {
+    previewPhoto.src = previewPhotoURL || DEFAULT_PHOTO;
+  }
+}
+
+async function handlePreviewPhotoChange() {
+  const photoInput = document.getElementById("photo");
+  const photo = photoInput?.files?.[0];
+
+  if (!photo || !photo.type.startsWith("image/")) {
+    previewPhotoURL = "";
+    updateFormPreview();
+    return;
+  }
+
+  try {
+    previewPhotoURL = await readFileAsDataURL(photo);
+  } catch (error) {
+    console.error(error);
+    previewPhotoURL = "";
+  }
+
+  updateFormPreview();
+}
+
 function resetFeeInputs() {
   textOf("feeTotal", String(DEFAULT_TOTAL_FEE));
   textOf("feePaid", "0");
   textOf("feeDueDate", getDefaultDueDateISO());
   textOf("paymentDate", getTodayISO());
   textOf("paymentMethod", DEFAULT_PAYMENT_METHOD);
+  updateFormPreview();
 }
 
 function clearForm() {
@@ -300,7 +400,9 @@ function clearForm() {
   for (const id of ids) {
     textOf(id, "");
   }
+  previewPhotoURL = "";
   resetFeeInputs();
+  updateFormPreview();
 }
 
 function getValueByAliases(row, headerRow, aliases) {
@@ -788,6 +890,27 @@ function initFilterControls() {
       displayStudents();
     });
   }
+}
+
+function initFormPreview() {
+  const previewInputIds = ["roll", "name", "dsa", "os", "dbms", "cn", "feeTotal", "feePaid", "feeDueDate"];
+  for (const id of previewInputIds) {
+    const input = document.getElementById(id);
+    if (!input) {
+      continue;
+    }
+    input.addEventListener("input", updateFormPreview);
+    input.addEventListener("change", updateFormPreview);
+  }
+
+  const photoInput = document.getElementById("photo");
+  if (photoInput) {
+    photoInput.addEventListener("change", () => {
+      handlePreviewPhotoChange();
+    });
+  }
+
+  updateFormPreview();
 }
 
 function switchView(view) {
@@ -1962,6 +2085,7 @@ function loadStoredState() {
 loadStoredState();
 initSidebarNavigation();
 initFilterControls();
+initFormPreview();
 switchView("profile");
 resetFeeInputs();
 displayStudents();
