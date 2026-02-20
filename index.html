@@ -33,7 +33,7 @@
         <h1>Welcome To School Management System</h1>
       </div>
       <div class="topbar-right">
-        <input class="top-search" type="text" placeholder="Search here..." aria-label="Search">
+        <input id="topSearch" class="top-search" type="text" placeholder="Search by roll, name, or phone..." aria-label="Search">
         <button class="top-refresh" type="button" onclick="displayStudents()">Refresh</button>
       </div>
     </header>
@@ -64,6 +64,9 @@
             </label>
             <label>Paid Fee
               <input id="feePaid" type="number" min="0" placeholder="e.g. 1000">
+            </label>
+            <label>Fee Due Date
+              <input id="feeDueDate" type="date">
             </label>
             <label class="full-width">Photo
               <input type="file" id="photo" accept="image/*">
@@ -117,12 +120,23 @@
             <h2>Search Student</h2>
             <p>Find and sort records quickly.</p>
             <div class="search-row">
-              <input id="searchRoll" placeholder="Enter Roll Number">
+              <input id="searchRoll" placeholder="Enter Roll / Name / Phone">
               <button type="button" onclick="searchStudent()">Search</button>
             </div>
             <div class="secondary-actions">
               <button type="button" onclick="sortTopper()">Topper Sort</button>
               <button type="button" onclick="displayStudents()">Show All</button>
+            </div>
+            <div class="filter-row">
+              <select id="filterFeeStatus" aria-label="Filter by fee status">
+                <option value="all">All Fee Status</option>
+                <option value="due">Fee Due Only</option>
+                <option value="paid">Fully Paid</option>
+              </select>
+              <select id="filterTopperStatus" aria-label="Filter by topper status">
+                <option value="all">All Students</option>
+                <option value="topper">Topper Only</option>
+              </select>
             </div>
             <div class="subject-sort-row">
               <select id="subjectSort" aria-label="Select subject for topper sort">
@@ -141,7 +155,34 @@
                 <input id="excelFile" type="file" accept=".xlsx,.xls,.csv">
                 <button class="import-btn" type="button" onclick="importStudentsFromExcel()">Import</button>
               </div>
-              <p class="import-hint">Columns: Roll, Name, Phone, Address, DSA, OS, DBMS, CN, FeeTotal, FeePaid.</p>
+              <p class="import-hint">Columns: Roll, Name, Phone, Address, DSA, OS, DBMS, CN, FeeTotal, FeePaid, FeeDueDate (optional).</p>
+            </div>
+
+            <div class="export-row">
+              <button type="button" class="export-btn csv-btn" onclick="exportStudentsCSV()">Export CSV</button>
+              <button type="button" class="export-btn xlsx-btn" onclick="exportStudentsExcel()">Export Excel</button>
+              <button type="button" class="export-btn print-btn" onclick="printReportCard()">Print Report Card</button>
+            </div>
+
+            <div class="fee-box">
+              <h3>Fee Payments</h3>
+              <p>Installment history, due date tracking, late fee, and receipts.</p>
+              <div class="fee-payment-grid">
+                <input id="paymentRoll" placeholder="Roll Number">
+                <input id="paymentAmount" type="number" min="0" placeholder="Installment Amount">
+                <input id="paymentDate" type="date">
+                <select id="paymentMethod" aria-label="Payment method">
+                  <option value="Cash">Cash</option>
+                  <option value="UPI">UPI</option>
+                  <option value="Card">Card</option>
+                  <option value="Bank Transfer">Bank Transfer</option>
+                </select>
+              </div>
+              <input id="paymentNote" class="payment-note" placeholder="Optional note">
+              <div class="fee-actions">
+                <button type="button" class="receipt-btn" onclick="recordPayment()">Add Installment</button>
+                <button type="button" class="receipt-btn secondary" onclick="generateFeeReceipt()">Generate Receipt</button>
+              </div>
             </div>
           </div>
         </article>
@@ -166,6 +207,7 @@
               <th>%</th>
               <th>Paid</th>
               <th>Left</th>
+              <th>Late Fee</th>
             </tr>
           </table>
         </div>
@@ -179,6 +221,21 @@
           <p>Students ranked by total score.</p>
         </div>
         <div id="resultsBoard" class="status-board"></div>
+
+        <div class="charts-grid">
+          <article class="chart-card">
+            <h3>Class Average Trend</h3>
+            <canvas id="chartAvgTrend"></canvas>
+          </article>
+          <article class="chart-card">
+            <h3>Subject-wise Performance</h3>
+            <canvas id="chartSubjectWise"></canvas>
+          </article>
+          <article class="chart-card">
+            <h3>Fee Collection vs Pending</h3>
+            <canvas id="chartFeeSplit"></canvas>
+          </article>
+        </div>
       </article>
     </section>
 
@@ -214,6 +271,7 @@
   </main>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="script.js"></script>
 </body>
 </html>
